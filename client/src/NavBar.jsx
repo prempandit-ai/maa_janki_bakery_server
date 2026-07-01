@@ -22,6 +22,8 @@ const NavBar = () => {
     setSearchQuery,
     searchSuggestions,
     setSearchSuggestions,
+    axios,
+    backendUrl,
   } = useContext(AppContext);
 
   // Close mobile search when route changes
@@ -84,7 +86,14 @@ const NavBar = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showMobileSearch]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await axios.post("/api/user/logout");
+    } catch (err) {
+      console.error("User logout error:", err);
+    }
+    localStorage.removeItem("userToken");
+    localStorage.removeItem("token");
     setUser(null);
     setShowProfileMenu(false);
     setOpen(false);
@@ -109,7 +118,6 @@ const NavBar = () => {
     
     // Construct the full URL from backend
     // Avatar from server is typically like "/images/filename.jpg"
-    const { backendUrl } = useContext(AppContext);
     const avatarPath = user.avatar.startsWith("/") ? user.avatar : `/${user.avatar}`;
     return `${backendUrl}${avatarPath}`;
   };

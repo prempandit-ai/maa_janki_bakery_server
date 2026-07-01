@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { dummyProducts } from "./assets/assets.jsx";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -8,12 +8,34 @@ axios.defaults.withCredentials = true;
 axios.defaults.baseURL =
   import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
+// Legacy fallback: attach tokens from localStorage if present (httpOnly cookies are primary)
+axios.interceptors.request.use(
+  (config) => {
+    const userToken = localStorage.getItem("userToken") || localStorage.getItem("token");
+    const sellerToken = localStorage.getItem("sellerToken");
+
+    if (config.url && config.url.startsWith("/api/seller")) {
+      if (sellerToken) {
+        config.headers.token = sellerToken;
+        config.headers.Authorization = `Bearer ${sellerToken}`;
+      }
+    } else if (userToken) {
+      config.headers.token = userToken;
+      config.headers.Authorization = `Bearer ${userToken}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export const AppContext = createContext(null);
 
 const AppContextProvider = ({ children }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [user, setUser] = useState(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
   const [isSeller, setIsSeller] = useState(false);
   const [isSellerLoading, setIsSellerLoading] = useState(true);
   const [showUserLogin, setShowUserLogin] = useState(false);
@@ -29,29 +51,35 @@ const AppContextProvider = ({ children }) => {
     setIsSellerLoading(true);
     try {
       const { data } = await axios.get("/api/seller/is-auth");
-      setIsSeller(data.success ? true : false);
+      setIsSeller(!!data.success);
     } catch (error) {
+      if (error?.response?.status === 401) {
+        localStorage.removeItem("sellerToken");
+      }
       setIsSeller(false);
     } finally {
       setIsSellerLoading(false);
     }
   };
 
-  // Fetch user
   const fetchUser = async () => {
+    setIsUserLoading(true);
     try {
       const { data } = await axios.get("/api/user/is-auth");
       if (data.success) {
         setUser(data.user);
-        setCartItems(data.user.cart || {}); // safe fallback
+        setCartItems(data.user.cartItems || {});
       }
     } catch (error) {
       if (error?.response?.status === 401) {
-        // not logged in – keep silent
+        localStorage.removeItem("userToken");
+        localStorage.removeItem("token");
         setUser(null);
         return;
       }
       toast.error(error.message);
+    } finally {
+      setIsUserLoading(false);
     }
   };
 
@@ -116,21 +144,33 @@ const AppContextProvider = ({ children }) => {
         const { data } = await axios.post("/api/cart/update", { cartItems });
         if (!data.success) toast.error(data.message);
       } catch (error) {
+        // On 401, silently skip — user may have just logged in and the
+        // cookie hasn't propagated yet, or the session genuinely expired.
+        // Do NOT clear user here to avoid a race condition after Google login.
+        if (error?.response?.status === 401) {
+          return;
+        }
         toast.error(error.message);
       }
     };
-    if (user)
-        {
-        updateCart();
-       }
+    if (user) {
+      updateCart();
+    }
   }, [cartItems]);
 
   // Initial fetches
   useEffect(() => {
     fetchProducts();
-    fetchSeller();
     fetchUser();
   }, []);
+
+  useEffect(() => {
+    if (location.pathname.startsWith("/seller")) {
+      fetchSeller();
+    } else {
+      setIsSellerLoading(false);
+    }
+  }, [location.pathname]);
 
   // Navigate on search - use ref to track previous value and prevent initial navigation
   const prevSearchQueryRef = useRef(searchQuery);
@@ -193,6 +233,7 @@ const AppContextProvider = ({ children }) => {
     navigate,
     user,
     setUser,
+    isUserLoading,
     isSeller,
     setIsSeller,
     isSellerLoading,
