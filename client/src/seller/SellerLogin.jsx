@@ -25,16 +25,21 @@ const SellerLogin = () => {
   const submitHandler = async (e) => {
     try {
       e.preventDefault();
-      const { data } = await axios.post("/api/seller/login", { email, password });
+      const { data } = await axios.post("/api/seller/login", {
+        email: email.trim(),
+        password,
+      });
       if (data.success) {
+        if (data.token) {
+          localStorage.setItem("sellerToken", data.token);
+        }
         setIsSeller(true);
-        // Refresh seller status to ensure sync
         await fetchSeller();
         navigate("/seller");
         toast.success(data.message);
       }
     } catch (error) {
-      toast.error(error.message || "Login failed");
+      toast.error(error.response?.data?.message || error.message || "Login failed");
     }
   };
 
