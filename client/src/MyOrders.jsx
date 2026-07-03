@@ -34,58 +34,62 @@ function MyOrders() {
   }, []);
 
   return (
-    <div className="mt-4 pb-16">
+    <div className="mt-2 pb-12 w-full max-w-4xl mx-auto">
       <BackButton />
-      <div className="mt-8">
-        <p className="text-2xl font-medium md:text-3xl">My Orders</p>
+      <div className="mt-4">
+        <p className="text-xl md:text-2xl font-semibold text-gray-800">My Orders</p>
       </div>
 
       {myOrders.map((order, index) => (
         <div
           key={index}
-          className="my-8 border border-gray-300 rounded-lg mb-10 p-4 py-5 max-w-4xl"
+          className="my-4 border border-gray-300 rounded-lg mb-6 p-3 md:p-5 w-full max-w-4xl bg-white shadow-sm"
         >
-          <p className="flex justify-between items-center gap-6">
-             <span>Order ID: {order._id}</span>
-             <span>Payment: {order.paymentType}</span>
-             {order.address && (
-               <span className="text-sm text-gray-500">
-                 Delivery to: {order.address.street || order.address.address}, {order.address.city}
-               </span>
-             )}
-             <span>Total Amount: ₹{order.amount}</span>
-           </p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-6 border-b border-gray-200 pb-3 text-xs sm:text-sm text-gray-600 font-medium">
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              <span>Order ID: <span className="font-semibold text-gray-800">{order._id}</span></span>
+              <span>Payment: <span className="font-semibold text-gray-800">{order.paymentType}</span></span>
+            </div>
+            {order.address && (
+              <div className="text-gray-500">
+                Delivery to: <span className="font-semibold text-gray-800">{order.address.street || order.address.address}, {order.address.city}</span>
+              </div>
+            )}
+            <span className="font-semibold text-orange-600 sm:text-gray-800">Total: ₹{order.amount}</span>
+          </div>
 
           {order.items.map((item, itemIndex) => (
             <div
               key={itemIndex}
-              className={`relative bg-white text-gray-800 flex flex-col md:flex-row md:items-center justify-between p-4 py-5 w-full max-w-4xl ${
-                itemIndex !== order.items.length - 1 ? "border-b border-gray-300" : ""
+              className={`relative bg-white text-gray-800 flex flex-col md:flex-row md:items-center justify-between p-2 py-3 md:p-4 md:py-5 w-full ${
+                itemIndex !== order.items.length - 1 ? "border-b border-gray-200" : ""
               }`}
             >
-              <div className="flex items-center mb-4 md:mb-0">
-                <div className="p-4 rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-1 border border-gray-100 rounded-md flex-shrink-0">
                   <img
-                    src={getImageUrl(item.product.images?.[0], backendUrl)}
-                    alt={item.product.name}
-                    className="w-16 h-16"
+                    src={getImageUrl(item.product?.images?.[0], backendUrl)}
+                    alt={item.product?.name || "Product Deleted"}
+                    className="w-12 h-12 md:w-16 md:h-16 object-cover"
                   />
                 </div>
-                <div className="ml-4">
-                  <h2 className="text-xl font-medium">{item.product.name}</h2>
-                  <p>{item.product.category}</p>
+                <div>
+                  <h2 className="text-sm md:text-base font-semibold text-gray-800 leading-tight">{item.product?.name || "Product Deleted"}</h2>
+                  <p className="text-xs text-gray-500 mt-0.5">{item.product?.category || "N/A"}</p>
                 </div>
               </div>
 
-              <div className="text-lg font-medium">
-                <p>Quantity: {item.quantity || 1}</p>
-                <p>Status: {order.status }</p>
-                <p>Date: {new Date(order.createdAt).toLocaleString()}</p>
+              <div className="flex flex-row md:flex-col justify-between items-center md:items-start text-xs md:text-sm text-gray-600 gap-4 mt-3 md:mt-0 pl-14 md:pl-0">
+                <div>
+                  <p><span className="font-medium text-gray-500">Qty:</span> {item.quantity || 1}</p>
+                  <p><span className="font-medium text-gray-500">Status:</span> <span className="text-indigo-600 font-semibold">{order.status}</span></p>
+                </div>
+                <div className="text-right md:text-left">
+                  <p className="hidden md:block"><span className="font-medium text-gray-500">Date:</span> {new Date(order.createdAt).toLocaleDateString()}</p>
+                  <p className="md:hidden text-gray-400">{new Date(order.createdAt).toLocaleDateString()}</p>
+                  <p className="text-sm md:text-base font-semibold text-gray-800 mt-1">₹{(item.product?.offerPrice || 0) * (item.quantity || 1)}</p>
+                </div>
               </div>
-
-              <p className="text-lg">
-                Amount: ₹{item.product.offerPrice * (item.quantity || 1)}
-              </p>
             </div>
           ))}
         </div>

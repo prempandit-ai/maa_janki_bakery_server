@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import './index.css'
 import App from './App.jsx'
 
@@ -8,10 +9,20 @@ import App from './App.jsx'
 import {BrowserRouter} from "react-router-dom";
 import AppContextProvider from "./AppContext.jsx";
 
-createRoot(document.getElementById('root')).render(
-    <BrowserRouter> 
-    <AppContextProvider> 
-       <App />
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+
+const app = (
+  <BrowserRouter>
+    <AppContextProvider>
+      <App />
     </AppContextProvider>
-    </BrowserRouter>
+  </BrowserRouter>
+);
+
+createRoot(document.getElementById('root')).render(
+  googleClientId ? (
+    <GoogleOAuthProvider clientId={googleClientId}>{app}</GoogleOAuthProvider>
+  ) : (
+    app
+  )
 );

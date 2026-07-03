@@ -13,9 +13,9 @@ const ProductCard = ({ product }) => {
       onClick={() => {
         navigate(`/products/${product.category?.toLowerCase()}/${product._id}`);
       }}
-      className="border border-gray-500/20 rounded-md md:px-4 px-3 py-4 bg-white min-w-56 max-w-56 w-full flex flex-col h-full"
+      className="border border-gray-500/20 rounded-xl md:rounded-md px-2 md:px-4 py-2 md:py-3 bg-white w-full md:max-w-[224px] flex flex-col h-full mx-auto shadow-sm hover:shadow-md transition-shadow cursor-pointer"
     >
-      <div className="group cursor-pointer h-48 overflow-hidden bg-gray-50 rounded-md mb-3">
+      <div className="group h-30 md:h-40 max-h-40 overflow-hidden bg-gray-50 rounded-lg md:rounded-md mb-1.5 md:mb-2">
         <img
           className="group-hover:scale-105 transition w-full h-full object-cover"
           src={getImageUrl(product.images?.[0], backendUrl)}
@@ -23,12 +23,12 @@ const ProductCard = ({ product }) => {
         />
       </div>
 
-      <div className="text-gray-500/60 text-sm flex flex-col flex-grow">
-        <p>{product.category}</p>
-        <p className="text-gray-700 font-medium text-lg truncate w-full">
+      <div className="text-gray-500/60 text-xs md:text-sm flex flex-col flex-grow">
+        <p className="text-[9px] md:text-[10px] uppercase tracking-wider">{product.category}</p>
+        <p className="text-gray-700 font-medium text-xs md:text-base truncate w-full mt-0.5">
           {product.name}
         </p>
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 mt-1">
           {Array(5)
             .fill("")
             .map((_, i) => (
@@ -36,15 +36,15 @@ const ProductCard = ({ product }) => {
                 key={i}
                 src={i < 4 ? assets.star_icon : assets.star_dull_icon}
                 alt="rating"
-                className="w-3 md:w-3.5"
+                className="w-2 md:w-3.5"
               />
             ))}
-          <p>(4)</p>
+          <p className="text-[9px] md:text-xs">(4)</p>
         </div>
-        <div className="flex items-end justify-between mt-3">
-          <p className="md:text-xl text-base font-medium text-indigo-500">
+        <div className="flex items-center justify-between mt-2 md:mt-3 gap-1">
+          <p className="text-xs md:text-lg font-semibold text-indigo-500 whitespace-nowrap">
             ₹{product.offerPrice}{" "}
-            <span className="text-gray-500/60 md:text-sm text-xs line-through">
+            <span className="text-gray-400 text-[9px] md:text-xs line-through font-normal">
               ₹{product.price}
             </span>
           </p>
@@ -52,14 +52,15 @@ const ProductCard = ({ product }) => {
           <div className="text-indigo-500" onClick={(e) => e.stopPropagation()}>
             {!cartItems?.[product._id] ? (
               <button
-                className="flex items-center justify-center gap-1 bg-indigo-100 border border-indigo-300 md:w-[80px] w-[64px] h-[34px] rounded text-indigo-600 font-medium"
+                className="flex items-center justify-center gap-0.5 md:gap-1 bg-indigo-100 border border-indigo-300 w-[46px] md:w-[80px] h-[24px] md:h-[34px] rounded text-indigo-600 text-[10px] md:text-sm font-semibold"
                 onClick={() => addToCart(product._id)}
               >
                 <svg
-                  width="14"
-                  height="14"
+                  width="10"
+                  height="10"
                   viewBox="0 0 14 14"
                   fill="none"
+                  className="md:w-3.5 md:h-3.5"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
@@ -73,17 +74,17 @@ const ProductCard = ({ product }) => {
                 Add
               </button>
             ) : (
-              <div className="flex items-center justify-center gap-2 md:w-20 w-16 h-[34px] bg-indigo-500/25 rounded select-none">
+              <div className="flex items-center justify-center gap-0.5 md:gap-2 w-[52px] md:w-20 h-[24px] md:h-[34px] bg-indigo-500/25 rounded select-none text-[10px] md:text-sm">
                 <button
                   onClick={() => removeFromCart(product._id)}
-                  className="cursor-pointer text-md px-2 h-full"
+                  className="cursor-pointer font-bold px-1 md:px-2 h-full flex items-center justify-center"
                 >
                   -
                 </button>
-                <span className="w-5 text-center">{cartItems[product._id]}</span>
+                <span className="w-4 md:w-5 text-center font-semibold">{cartItems[product._id]}</span>
                 <button
                   onClick={() => addToCart(product._id)}
-                  className="cursor-pointer text-md px-2 h-full"
+                  className="cursor-pointer font-bold px-1 md:px-2 h-full flex items-center justify-center"
                 >
                   +
                 </button>

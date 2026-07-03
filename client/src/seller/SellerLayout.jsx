@@ -8,7 +8,7 @@ import ProductList from "./ProductList";
 import Orders from "./Orders";
 
 const SellerLayout = () => {
-  const { isSeller, setIsSeller, navigate } = useContext(AppContext);
+  const { isSeller, setIsSeller, navigate, axios } = useContext(AppContext);
   const location = useLocation();
 
   const sidebarLinks = [
@@ -45,16 +45,25 @@ const SellerLayout = () => {
       {/* Main Content */}
       <div className="flex-1">
         {/* Top Navbar */}
-        <div className="flex items-center justify-between px-4 md:px-8 border-b border-gray-300 py-3 bg-white transition-all duration-300">
-          <h1 className="text-2xl text-orange-600">Maa Janki Admin Page</h1>
-          <div className="flex items-center gap-5 text-gray-500">
-            <p>Hi! Admin</p>
+        <div className="flex items-center justify-between px-3 md:px-8 border-b border-gray-300 py-3 bg-white transition-all duration-300">
+          <h1 className="text-base md:text-2xl text-orange-600 font-semibold truncate">
+            <span className="hidden sm:inline">Maa Janki Admin Page</span>
+            <span className="sm:hidden">MJ Admin</span>
+          </h1>
+          <div className="flex items-center gap-2 md:gap-5 text-gray-500">
+            <p className="hidden md:block text-sm">Hi! Admin</p>
             <button
-              onClick={() => {
+              onClick={async () => {
+                try {
+                  await axios.post("/api/seller/logout");
+                } catch (err) {
+                  console.error("Seller logout error:", err);
+                }
+                localStorage.removeItem("sellerToken");
                 setIsSeller(false);
                 navigate("/");
               }}
-              className="border rounded-full text-sm px-4 py-1 cursor-pointer"
+              className="border rounded-full text-xs md:text-sm px-3 md:px-4 py-1 cursor-pointer hover:bg-gray-50 transition-colors"
             >
               Logout
             </button>

@@ -110,6 +110,23 @@ const UserProfile = () => {
     }
   };
 
+  const handleSaveProfile = async () => {
+    try {
+      const { data } = await axios.post("/api/user/update-profile", {
+        name: user.name,
+        phoneNumber: user.phoneNumber,
+      });
+      if (data.success) {
+        toast.success("Profile updated successfully");
+        setUser({ ...user, ...data.user });
+      } else {
+        toast.error(data.message || "Failed to update profile");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message);
+    }
+  };
+
   if (!user) {
     return (
       <div className="mt-12 px-4">
@@ -125,10 +142,17 @@ const UserProfile = () => {
   }
 
   return (
-    <div className="mt-4 px-4 md:px-0 max-w-3xl mx-auto pb-16">
+    <div className="mt-4 px-4 md:px-0 max-w-2xl mx-auto pb-16">
       <BackButton />
       <h1 className="text-2xl md:text-3xl font-semibold mb-6 mt-8">Your Profile</h1>
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col gap-6">
+        <div>
+          <p className="font-semibold text-gray-900">Required details</p>
+          <p className="text-sm text-gray-500 mt-1">
+            Keep your contact details updated for orders and delivery updates.
+          </p>
+        </div>
+
         <div className="flex items-center gap-6 flex-wrap">
           <div className="w-24 h-24 rounded-full bg-gray-100 overflow-hidden border border-gray-200 shadow-sm">
             {preview ? (
@@ -149,8 +173,8 @@ const UserProfile = () => {
           </div>
           <div className="flex flex-col gap-3">
             <div>
-              <p className="font-semibold text-lg">{user.name}</p>
-              <p className="text-gray-600 text-sm">{user.email}</p>
+              <p className="font-semibold text-lg">Profile photo</p>
+              <p className="text-gray-600 text-sm">Optional</p>
             </div>
             <div className="flex flex-col gap-1">
               <label
@@ -179,7 +203,7 @@ const UserProfile = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap -mt-2">
           <button
             onClick={handleUpload}
             disabled={!file || isUploading}
@@ -209,139 +233,40 @@ const UserProfile = () => {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-700">
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <p className="font-semibold text-gray-900 mb-2">Account</p>
-            <div className="space-y-3">
-              <div>
-                <label className="text-gray-500 block mb-1">Name</label>
-                <input
-                  type="text"
-                  value={user.name}
-                  onChange={(e) => setUser({ ...user, name: e.target.value })}
-                  className="w-full p-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="text-gray-500 block mb-1">Email</label>
-                <input
-                  type="email"
-                  value={user.email}
-                  disabled
-                  className="w-full p-2 border border-gray-100 bg-gray-50 rounded-md text-gray-400 cursor-not-allowed"
-                />
-              </div>
-            </div>
+        <div className="space-y-4 text-sm text-gray-700">
+          <div>
+            <label className="text-gray-500 block mb-1">Name</label>
+            <input
+              type="text"
+              value={user.name}
+              onChange={(e) => setUser({ ...user, name: e.target.value })}
+              className="w-full p-3 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
           </div>
-          <div className="p-4 border border-gray-200 rounded-lg">
-            <p className="font-semibold text-gray-900 mb-2">Personal Details</p>
-            <div className="space-y-3">
-              <div>
-                <label className="text-gray-500 block mb-1">Date of Birth</label>
-                <input
-                  type="date"
-                  value={user.dob || ""}
-                  onChange={(e) => setUser({ ...user, dob: e.target.value })}
-                  className="w-full p-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="text-gray-500 block mb-1">Gender</label>
-                <select
-                  value={user.gender || ""}
-                  onChange={(e) => setUser({ ...user, gender: e.target.value })}
-                  className="w-full p-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-gray-500 block mb-1">Phone Number</label>
-                <input
-                  type="tel"
-                  placeholder="Enter phone number"
-                  value={user.phoneNumber || ""}
-                  onChange={(e) => setUser({ ...user, phoneNumber: e.target.value })}
-                  className="w-full p-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-            </div>
+          <div>
+            <label className="text-gray-500 block mb-1">Email</label>
+            <input
+              type="email"
+              value={user.email}
+              disabled
+              className="w-full p-3 border border-gray-100 bg-gray-50 rounded-md text-gray-400 cursor-not-allowed"
+            />
           </div>
-
-          <div className="p-4 border border-gray-200 rounded-lg md:col-span-2">
-            <p className="font-semibold text-gray-900 mb-2">Address Details</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="text-gray-500 block mb-1">Street Address</label>
-                <input
-                  type="text"
-                  placeholder="Enter street address"
-                  value={user.address || ""}
-                  onChange={(e) => setUser({ ...user, address: e.target.value })}
-                  className="w-full p-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="text-gray-500 block mb-1">City</label>
-                <input
-                  type="text"
-                  placeholder="City"
-                  value={user.city || ""}
-                  onChange={(e) => setUser({ ...user, city: e.target.value })}
-                  className="w-full p-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="text-gray-500 block mb-1">State</label>
-                <input
-                  type="text"
-                  placeholder="State"
-                  value={user.state || ""}
-                  onChange={(e) => setUser({ ...user, state: e.target.value })}
-                  className="w-full p-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="text-gray-500 block mb-1">Pincode</label>
-                <input
-                  type="text"
-                  placeholder="Enter 6-digit pincode"
-                  value={user.pincode || ""}
-                  onChange={(e) => setUser({ ...user, pincode: e.target.value })}
-                  className="w-full p-2 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-              </div>
-            </div>
+          <div>
+            <label className="text-gray-500 block mb-1">Phone number</label>
+            <input
+              type="tel"
+              placeholder="Enter phone number"
+              value={user.phoneNumber || ""}
+              onChange={(e) => setUser({ ...user, phoneNumber: e.target.value })}
+              className="w-full p-3 border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
           </div>
         </div>
 
         <div className="flex justify-end gap-3 mt-4">
           <button
-            onClick={async () => {
-              try {
-                const { data } = await axios.post("/api/user/update-profile", {
-                  name: user.name,
-                  dob: user.dob,
-                  gender: user.gender,
-                  phoneNumber: user.phoneNumber,
-                  address: user.address,
-                  city: user.city,
-                  state: user.state,
-                  pincode: user.pincode,
-                });
-                if (data.success) {
-                  toast.success("Profile updated successfully");
-                  setUser({ ...user, ...data.user });
-                } else {
-                  toast.error(data.message || "Failed to update profile");
-                }
-              } catch (error) {
-                toast.error(error.response?.data?.message || error.message);
-              }
-            }}
+            onClick={handleSaveProfile}
             className="px-8 py-3 bg-indigo-500 text-white rounded-full font-medium hover:bg-indigo-600 transition shadow-md"
           >
             Save Profile

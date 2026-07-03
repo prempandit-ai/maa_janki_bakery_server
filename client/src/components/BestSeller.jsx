@@ -6,9 +6,9 @@ import ProductCard from "./ProductCard";
  const BestSeller=()=>{
     const {products}=useContext(AppContext);  
   return(
-     <div className="mt-16">
-     <p className="text-2xl font-semibold md:text-3xl">Deal of the day</p>
-    <div className="my-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+     <div className="mt-8 md:mt-16">
+     <p className="text-xl md:text-3xl font-semibold">Deal of the day</p>
+    <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-5 my-6">
     {
      products.filter((product)=>product.inStock && product.isDealOfDay)
      .slice(0,8)

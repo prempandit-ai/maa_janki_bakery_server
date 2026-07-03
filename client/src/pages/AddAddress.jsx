@@ -4,6 +4,9 @@ import { AppContext } from "../AppContext";
 import toast from "react-hot-toast";
 
 const AddAddress = () => {
+  const fieldClass =
+    "w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-800 outline-none transition-all placeholder:text-gray-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10";
+  const labelClass = "mb-1.5 block text-sm font-medium text-gray-700";
    
   const [address, setAddress] =useState({
     firstName: "",
@@ -16,7 +19,15 @@ const AddAddress = () => {
     country: "",
     phone: "",
   });
-  const { axios, user, navigate } = useContext(AppContext);
+  const {
+    axios,
+    user,
+    setUser,
+    setCartItems,
+    isUserLoading,
+    navigate,
+    setShowUserLogin,
+  } = useContext(AppContext);
   const handleChange = (e) => {
     setAddress({ ...address, [e.target.name]: e.target.value });
   };
@@ -24,6 +35,21 @@ const AddAddress = () => {
   const submitHandler = async (e) => {
      try{
         e.preventDefault();
+        if (!user) {
+          setShowUserLogin(true);
+          return toast.error("Please login to add an address");
+        }
+
+        const { data: authData } = await axios.get("/api/user/is-auth");
+        if (!authData.success) {
+          localStorage.removeItem("userToken");
+          localStorage.removeItem("token");
+          setUser(null);
+          setCartItems({});
+          setShowUserLogin(true);
+          return toast.error("Your session expired. Please login again");
+        }
+
         const {data}=await axios.post("/api/address/add",{address});     
     if(data.success){
          toast.success(data.message);
@@ -37,141 +63,183 @@ const AddAddress = () => {
 
    }
    catch(error){
-       toast.error(error.message);
+       if (error.response?.status === 401) {
+        localStorage.removeItem("userToken");
+        localStorage.removeItem("token");
+        setUser(null);
+        setCartItems({});
+        setShowUserLogin(true);
+       }
+       toast.error(error.response?.data?.message || error.message);
   }
   
  };
 
   useEffect(()=>{
-     if(user===null){
+     if(!isUserLoading && user===null){
+        setShowUserLogin(true);
         navigate("/cart");   
     }
-  },[user,navigate]);
+  },[isUserLoading,user,navigate,setShowUserLogin]);
+
+  if (isUserLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center text-gray-600">
+        <div className="rounded-lg border border-gray-200 bg-white px-6 py-4 shadow-sm">
+          Loading...
+        </div>
+      </div>
+    );
+  }
 
 
   return (
-    <div className="mt-12 flex flex-col md:flex-row gap-6 p-6 bg-gray-100 rounded-lg shadow-md">
-      {/* Left Side: Address Fields */}
-      <div className="flex-1 bg-white p-6 rounded-lg shadow">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">
-          Address Details
-        </h2>
+    <div className="mx-auto mt-6 mb-12 max-w-6xl">
+      <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">
+            Checkout
+          </p>
+          <h1 className="text-2xl font-bold text-gray-900 md:text-3xl">
+            Add delivery address
+          </h1>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate("/cart")}
+          className="w-fit rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:border-indigo-200 hover:text-indigo-600"
+        >
+          Back to cart
+        </button>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[1.35fr_0.85fr]">
+        <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm md:p-7">
+          <div className="mb-6 border-b border-gray-100 pb-4">
+            <h2 className="text-lg font-bold text-gray-900">
+              Address details
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">
+              We will use this address for delivery and order updates.
+            </p>
+          </div>
+
         <form
           onSubmit={submitHandler}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          className="grid grid-cols-1 gap-4 md:grid-cols-2"
         >
           <div>
-            <label className="block text-gray-600">First Name</label>
+            <label className={labelClass}>First Name</label>
             <input
               type="text"
               name="firstName"
               value={address.firstName}
               onChange={handleChange}
-              className="w-full p-2 border rounded-md"
+              className={fieldClass}
               required
             />
           </div>
 
           <div>
-            <label className="block text-gray-600">Last Name</label>
+            <label className={labelClass}>Last Name</label>
             <input
               type="text"
               name="lastName"
               value={address.lastName}
               onChange={handleChange}
-              className="w-full p-2 border rounded-md"
+              className={fieldClass}
               required
             />
           </div>
 
-          <div className="col-span-2">
-            <label className="block text-gray-600">Email</label>
+          <div className="md:col-span-2">
+            <label className={labelClass}>Email</label>
             <input
               type="email"
               name="email"
               value={address.email}
               onChange={handleChange}
-              className="w-full p-2 border rounded-md"
+              className={fieldClass}
               required
             />
           </div>
 
-          <div className="col-span-2">
-            <label className="block text-gray-600">Street</label>
+          <div className="md:col-span-2">
+            <label className={labelClass}>Street</label>
             <input
               type="text"
               name="street"
               value={address.street}
               onChange={handleChange}
-              className="w-full p-2 border rounded-md"
+              className={fieldClass}
               required
             />
           </div>
 
           <div>
-            <label className="block text-gray-600">City</label>
+            <label className={labelClass}>City</label>
             <input
               type="text"
               name="city"
               value={address.city}
               onChange={handleChange}
-              className="w-full p-2 border rounded-md"
+              className={fieldClass}
               required
             />
           </div>
 
           <div>
-            <label className="block text-gray-600">State</label>
+            <label className={labelClass}>State</label>
             <input
               type="text"
               name="state"
               value={address.state}
               onChange={handleChange}
-              className="w-full p-2 border rounded-md"
+              className={fieldClass}
               required
             />
           </div>
 
           <div>
-            <label className="block text-gray-600">Zip Code</label>
+            <label className={labelClass}>Zip Code</label>
             <input
               type="number"
               name="zipCode"
               value={address.zipCode}
               onChange={handleChange}
-              className="w-full p-2 border rounded-md"
+              className={fieldClass}
               required
             />
           </div>
 
           <div>
-            <label className="block text-gray-600">Country</label>
+            <label className={labelClass}>Country</label>
             <input
               type="text"
               name="country"
               value={address.country}
               onChange={handleChange}
-              className="w-full p-2 border rounded-md"
+              className={fieldClass}
               required
             />
           </div>
 
-          <div className="col-span-2">
-            <label className="block text-gray-600">Phone</label>
+          <div className="md:col-span-2">
+            <label className={labelClass}>Phone</label>
             <input
               type="number"
               name="phone"
               value={address.phone}
               onChange={handleChange}
-              className="w-full p-2 border rounded-md"
+              className={fieldClass}
               required
             />
           </div>
 
-          <div className="col-span-2">
+          <div className="mt-2 md:col-span-2">
             <button
               type="submit"
-              className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 rounded-md"
+              className="w-full rounded-lg bg-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-md shadow-indigo-600/15 transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20"
             >
               Save Address
             </button>
@@ -179,13 +247,27 @@ const AddAddress = () => {
         </form>
       </div>
 
-      {/* Right Side: Image */}
-      <div className="flex-1 flex items-center justify-center">
-        <img
-          src={assets.add_address_image}
-          alt="Address Illustration"
-          className="w-full max-w-xs rounded-lg shadow-md"
-        />
+        <aside className="hidden rounded-lg border border-indigo-100 bg-indigo-50/60 p-6 lg:flex lg:flex-col lg:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">
+              Fast checkout starts here
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-gray-600">
+              Save your delivery details once and pick them quickly when placing future orders.
+            </p>
+          </div>
+          <img
+            src={assets.add_address_image}
+            alt="Address Illustration"
+            className="mx-auto mt-8 w-full max-w-xs"
+          />
+          <div className="mt-8 rounded-lg bg-white p-4 text-sm text-gray-600 shadow-sm">
+            <p className="font-semibold text-gray-900">Delivery tip</p>
+            <p className="mt-1">
+              Add a clear street address and reachable phone number to avoid delays.
+            </p>
+          </div>
+        </aside>
       </div>
     </div>
   );

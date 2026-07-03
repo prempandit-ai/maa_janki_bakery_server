@@ -1,6 +1,5 @@
 import { createContext, useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { dummyProducts } from "./assets/assets.jsx";
 import toast from "react-hot-toast";
 import axios from "axios";
 
@@ -43,6 +42,8 @@ const AppContextProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState({}); // always an object
   const [searchQuery, setSearchQuery] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const hasHydratedUserCart = useRef(false);
+  const lastSyncedCartRef = useRef(null);
   
   const backendUrl = axios.defaults.baseURL;
 
@@ -69,12 +70,18 @@ const AppContextProvider = ({ children }) => {
       if (data.success) {
         setUser(data.user);
         setCartItems(data.user.cartItems || {});
+      } else {
+        localStorage.removeItem("userToken");
+        localStorage.removeItem("token");
+        setUser(null);
+        setCartItems({});
       }
     } catch (error) {
       if (error?.response?.status === 401) {
         localStorage.removeItem("userToken");
         localStorage.removeItem("token");
         setUser(null);
+        setCartItems({});
         return;
       }
       toast.error(error.message);
@@ -139,10 +146,36 @@ const AppContextProvider = ({ children }) => {
 
   // Update cart on backend whenever it changes
   useEffect(() => {
+    if (isUserLoading) {
+      return;
+    }
+
+    if (!user) {
+      hasHydratedUserCart.current = false;
+      lastSyncedCartRef.current = null;
+      return;
+    }
+
+    const cartPayload = JSON.stringify(cartItems || {});
+
+    if (!hasHydratedUserCart.current) {
+      hasHydratedUserCart.current = true;
+      lastSyncedCartRef.current = cartPayload;
+      return;
+    }
+
+    if (lastSyncedCartRef.current === cartPayload) {
+      return;
+    }
+
     const updateCart = async () => {
       try {
         const { data } = await axios.post("/api/cart/update", { cartItems });
-        if (!data.success) toast.error(data.message);
+        if (data.success) {
+          lastSyncedCartRef.current = cartPayload;
+        } else {
+          toast.error(data.message);
+        }
       } catch (error) {
         // On 401, silently skip — user may have just logged in and the
         // cookie hasn't propagated yet, or the session genuinely expired.
@@ -153,10 +186,8 @@ const AppContextProvider = ({ children }) => {
         toast.error(error.message);
       }
     };
-    if (user) {
-      updateCart();
-    }
-  }, [cartItems]);
+    updateCart();
+  }, [cartItems, isUserLoading, user]);
 
   // Initial fetches
   useEffect(() => {

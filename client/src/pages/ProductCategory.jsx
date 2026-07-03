@@ -20,14 +20,14 @@ const ProductCategory=()=>{
  return ( <div className="mt-4">
     <BackButton />
     {searchCategory&&(
-   <div className="flex flex-col items-end w-max mt-12">
-   <h1 className="text-3xl md:4xl font-medium">{searchCategory.text.toUpperCase()}</h1>
+    <div className="flex flex-col items-start mt-12">
+    <h1 className="text-2xl md:text-4xl font-semibold">{searchCategory.text.toUpperCase()}</h1>
   </div>
   )}
   {
      filteredProducts.length>0?(
     <div>
-      <div className="my-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 items-center justify-center">
+      <div className="my-6 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 items-center justify-center">
           {
             filteredProducts.map((product,index)=>(
          <ProductCard key={index} product={product} />
@@ -38,7 +38,7 @@ const ProductCategory=()=>{
     </div>
    ):(
      
-      <h1 className="text-3xl md:text-4xl font-medium"> No Product Found </h1>
+      <h1 className="text-2xl md:text-4xl font-semibold mt-12"> No Product Found </h1>
 
    )
   }

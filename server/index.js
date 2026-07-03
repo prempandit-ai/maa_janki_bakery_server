@@ -1,14 +1,17 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 import dotenv from "dotenv";
 import path from "path";
 import { connectDB } from "./config/connectDB.js";
 import dns from "node:dns";
+import { authLimiter, apiLimiter, chatbotLimiter } from "./middlewares/rateLimiter.js";
 dns.setDefaultResultOrder('ipv4first');
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 
 dotenv.config();
+dotenv.config({ path: path.resolve(process.cwd(), "server", ".env") });
 import userRoutes from "./routes/user.routes.js";
 import sellerRoutes from "./routes/seller.routes.js";
 import { connectCloudinary } from "./config/cloudinary.js";
@@ -23,9 +26,11 @@ import chatbotRoutes from "./routes/chatbot.routes.js";
 
 const app = express();
 
+app.set("trust proxy", 1);
 
 connectDB();
 connectCloudinary();
+
 const allowedOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
@@ -35,20 +40,45 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
-//middleware
-app.use(express.json());
-app.use(cors({
-  origin: function (origin, callback) {
-    // allow same-origin requests or if in allowed list
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
-}));
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  // Allow any Vercel deployment (preview + production)
+  if (origin.endsWith(".vercel.app")) return true;
+  return false;
+};
+
+app.use(
+  helmet({
+    crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
+app.use(express.json({ limit: "1mb" }));
+
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "token"],
+    exposedHeaders: ["Authorization", "token"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  })
+);
 app.use(cookieParser());
+
+app.use("/api/user/login", authLimiter);
+app.use("/api/user/register", authLimiter);
+app.use("/api/user/google", authLimiter);
+app.use("/api/seller/login", authLimiter);
+app.use("/api/chatbot", chatbotLimiter);
+app.use("/api", apiLimiter);
 
 //Api Endpoints  
 

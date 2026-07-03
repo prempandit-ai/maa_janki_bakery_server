@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { AppContext } from '../AppContext';
 import './chatbot.css';
-import chatbotIcon from '../assets/chatbot_icon.png';
+
 
 const Chatbot = () => {
     const { axios } = useContext(AppContext);
@@ -82,7 +82,53 @@ const Chatbot = () => {
         <div className="chatbot-container">
             {!isOpen ? (
                 <div className="chatbot-fab" onClick={toggleChat}>
-                    <img src={chatbotIcon} alt="Chatbot Icon" />
+                    {/* Robot Chatbot Icon */}
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 100 100"
+                        className="chatbot-fab-icon"
+                    >
+                        {/* Antenna stem */}
+                        <rect x="48" y="8" width="4" height="10" rx="2" fill="white" />
+                        {/* Antenna cap */}
+                        <rect x="42" y="16" width="16" height="6" rx="3" fill="white" />
+
+                        {/* Left ear / headphone */}
+                        <rect x="12" y="38" width="10" height="18" rx="5" fill="white" />
+                        {/* Right ear / headphone */}
+                        <rect x="78" y="38" width="10" height="18" rx="5" fill="white" />
+
+                        {/* Head arc (headphone band) */}
+                        <path
+                            d="M20 48 Q20 24 50 24 Q80 24 80 48"
+                            stroke="white"
+                            strokeWidth="5"
+                            fill="none"
+                            strokeLinecap="round"
+                        />
+
+                        {/* Robot face (rounded rect) */}
+                        <rect x="22" y="36" width="56" height="46" rx="14" fill="white" />
+
+                        {/* Left eye ring */}
+                        <circle cx="38" cy="57" r="9" fill="none" stroke="#F97316" strokeWidth="4" />
+                        {/* Left eye dot */}
+                        <circle cx="38" cy="57" r="3" fill="#F97316" />
+
+                        {/* Right eye ring */}
+                        <circle cx="62" cy="57" r="9" fill="none" stroke="#F97316" strokeWidth="4" />
+                        {/* Right eye dot */}
+                        <circle cx="62" cy="57" r="3" fill="#F97316" />
+
+                        {/* Smile */}
+                        <path
+                            d="M38 72 Q50 82 62 72"
+                            stroke="#F97316"
+                            strokeWidth="4"
+                            fill="none"
+                            strokeLinecap="round"
+                        />
+                    </svg>
                 </div>
             ) : (
                 <div className="chatbot-window">

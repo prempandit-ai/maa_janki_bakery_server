@@ -3,6 +3,61 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import path from "path";
 import fs from "fs";
+import { OAuth2Client } from "google-auth-library";
+import { v2 as cloudinary } from "cloudinary";
+
+const getGoogleClient = () =>
+  new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    "postmessage"
+  );
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const uploadAvatarToCloudinary = (file) =>
+  new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "maa-janki-bakery/avatars" },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result.secure_url);
+      }
+    );
+    stream.end(file.buffer);
+  });
+
+const formatUserResponse = (user) => ({
+  name: user.name,
+  email: user.email,
+  avatar: user.avatar,
+  cartItems: user.cartItems || {},
+  dob: user.dob || "",
+  gender: user.gender || "",
+  phoneNumber: user.phoneNumber || "",
+  address: user.address || "",
+  city: user.city || "",
+  state: user.state || "",
+  pincode: user.pincode || "",
+});
+
+const getCookieOptions = (req) => {
+  const isHttps =
+    req.secure || req.get("x-forwarded-proto") === "https";
+
+  return {
+    httpOnly: true,
+    secure: isHttps,
+    sameSite: isHttps ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  };
+};
+
+const setAuthCookie = (req, res, token) => {
+  res.cookie("token", token, {
+    ...getCookieOptions(req),
+  });
+};
 
 //register user : /api/user/register
 
@@ -15,7 +70,20 @@ export const registerUser=async(req,res)=>{
        .json({message: "All fields are required",success:false});
     }
 
-     const existingUser=await User.findOne({email});
+    if (!EMAIL_REGEX.test(email.trim())) {
+      return res
+        .status(400)
+        .json({ message: "Invalid email format", success: false });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters",
+        success: false,
+      });
+    }
+
+     const existingUser=await User.findOne({email: email.trim().toLowerCase()});
     if(existingUser){
     return res
      .status(400)
@@ -23,36 +91,20 @@ export const registerUser=async(req,res)=>{
    }
     const hashedPassword=await bcrypt.hash(password,10);
     const user=await User.create({
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
         password:hashedPassword,
    }); 
     
     const token=jwt.sign({id:user._id},process.env.JWT_SECRET,
       {expiresIn: "7d" ,} );
 
-     res.cookie("token", token,{
-       httpOnly:true,
-       secure:process.env.NODE_ENV==="production",
-       
-       sameSite:process.env.NODE_ENV==="production"?"none":"Strict",
-       maxAge: 7 * 24 * 60 * 60 * 1000,            
-    });
+     setAuthCookie(req, res, token);
    res.json({
-        "message":"User registered Successfully",
+        message:"User registered Successfully",
          success:true,
-        user:{
-         name:user.name,
-         email:user.email,
-         avatar:user.avatar,
-         dob:user.dob || "",
-         gender:user.gender || "",
-         phoneNumber:user.phoneNumber || "",
-         address:user.address || "",
-         city:user.city || "",
-         state:user.state || "",
-         pincode:user.pincode || "",
-        },
+        user: formatUserResponse(user),
+        token,
    
    });     
   }
@@ -77,6 +129,12 @@ export const registerUser=async(req,res)=>{
 
      }
 
+        if(!user.password){
+           return res
+           .status(400)
+           .json({message:"This account uses Google sign-in. Please continue with Google.",success:false});
+        }
+
         const isMatch=await bcrypt.compare(password,user.password);
         if(!isMatch){
            return res
@@ -86,29 +144,12 @@ export const registerUser=async(req,res)=>{
        const token=jwt.sign({ id:user._id }, process.env.JWT_SECRET,
 {  expiresIn:"7d"                
        });
-      res.cookie("token", token,{
-       httpOnly:true,
-       secure:process.env.NODE_ENV==="production",
-       
-       sameSite:process.env.NODE_ENV==="production"?"none":"Strict",
-       maxAge: 7 * 24 * 60 * 60 * 1000, 
-             
-       });
+      setAuthCookie(req, res, token);
    res.json({
-        "message":" Logged  Successfully",
+        message:"Logged in successfully",
          success:true,
-        user:{
-         name:user.name,
-         email:user.email,
-         avatar:user.avatar,
-         dob:user.dob || "",
-         gender:user.gender || "",
-         phoneNumber:user.phoneNumber || "",
-         address:user.address || "",
-         city:user.city || "",
-         state:user.state || "",
-         pincode:user.pincode || "",
-        },
+        user: formatUserResponse(user),
+        token,
    
    });     
 
@@ -120,15 +161,114 @@ export const registerUser=async(req,res)=>{
          }
   };
 
+export const googleAuthUser = async (req, res) => {
+  try {
+    const { credential, code } = req.body;
+
+    if (!credential && !code) {
+      return res
+        .status(400)
+        .json({ message: "Google authentication failed", success: false });
+    }
+
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      return res.status(503).json({
+        message: "Google sign-in is not configured on the server",
+        success: false,
+      });
+    }
+
+    let googleId;
+    let email;
+    let name;
+    let picture;
+    const googleClient = getGoogleClient();
+
+    if (credential) {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      googleId = payload.sub;
+      email = payload.email;
+      name = payload.name;
+      picture = payload.picture;
+    } else {
+      const { tokens } = await googleClient.getToken({
+        code,
+        redirect_uri: "postmessage",
+      });
+      const ticket = await googleClient.verifyIdToken({
+        idToken: tokens.id_token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      const payload = ticket.getPayload();
+      googleId = payload.sub;
+      email = payload.email;
+      name = payload.name;
+      picture = payload.picture;
+    }
+
+    if (!email || !googleId) {
+      return res
+        .status(400)
+        .json({ message: "Unable to verify Google account", success: false });
+    }
+
+    let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+    if (user) {
+      if (user.password && !user.googleId) {
+        return res.status(400).json({
+          message:
+            "An account with this email already exists. Please sign in with your password.",
+          success: false,
+        });
+      }
+
+      if (!user.googleId) {
+        user.googleId = googleId;
+      }
+      if (!user.avatar && picture) {
+        user.avatar = picture;
+      }
+      if (!user.name && name) {
+        user.name = name;
+      }
+      await user.save();
+    } else {
+      user = await User.create({
+        name: name || email.split("@")[0],
+        email,
+        googleId,
+        avatar: picture || null,
+      });
+    }
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    setAuthCookie(req, res, token);
+
+    res.json({
+      message: "Signed in with Google successfully",
+      success: true,
+      user: formatUserResponse(user),
+      token,
+    });
+  } catch (error) {
+    console.error("Google auth error:", error.message);
+    res.status(500).json({ message: "Google sign-in failed", success: false });
+  }
+};
+
   //logout user:api/user/logout
   
  export const logoutUser=async(req,res)=>{
    try{
-     res.clearCookie("token",{
-         httpOnly:true,
-         secure:process.env.NODE_ENV==="production",
-         sameSite:process.env.NODE_ENV==="production"? "none":"Strict",
-     });
+     res.clearCookie("token", getCookieOptions(req));
     res.json({message:"User logged out successfully",success:true});  
     }
       catch(error){ 
@@ -143,7 +283,7 @@ export const isAuthUser=async(req,res)=>{
   try{
        const userId=req.user;
     if(!userId){
-           return res.status(401).json({message:"Unauthorised",success:false});
+           return res.json({message:"Not signed in",success:false});
     }
      const user=await User.findById(userId).select("-password");
     res.json({
@@ -152,6 +292,7 @@ export const isAuthUser=async(req,res)=>{
        name:user.name,
        email:user.email,
        avatar:user.avatar,
+       cartItems:user.cartItems || {},
        dob:user.dob,
        gender:user.gender,
        phoneNumber:user.phoneNumber,
@@ -180,10 +321,10 @@ export const uploadAvatar = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: "Avatar file required", success: false });
     }
-    const avatarPath = `/images/${req.file.filename}`;
+    const avatarUrl = await uploadAvatarToCloudinary(req.file);
     const user = await User.findByIdAndUpdate(
       userId,
-      { avatar: avatarPath },
+      { avatar: avatarUrl },
       { new: true }
     ).select("-password");
     return res.json({
@@ -267,11 +408,27 @@ export const updateUserProfile = async (req, res) => {
       return res.status(401).json({ message: "Unauthorised", success: false });
     }
 
-    const { name, dob, gender, phoneNumber, address, city, state, pincode } = req.body;
+    const allowedFields = [
+      "name",
+      "dob",
+      "gender",
+      "phoneNumber",
+      "address",
+      "city",
+      "state",
+      "pincode",
+    ];
+    const profileUpdates = {};
+
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        profileUpdates[field] = req.body[field];
+      }
+    });
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
-      { name, dob, gender, phoneNumber, address, city, state, pincode },
+      profileUpdates,
       { new: true, runValidators: true }
     ).select("-password");
 

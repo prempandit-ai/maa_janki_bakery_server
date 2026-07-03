@@ -10,7 +10,7 @@ const orderSchema = new mongoose.Schema(
     ],
     amount: { type: Number, required: true },
     address: { type: mongoose.Schema.Types.Mixed, required: true },
-    status: { type: String, default: "Order Placed" },
+    status: { type: String, default: "Pending Approval" },
     paymentType: { type: String, required: true },
     isPaid: { type: Boolean, required: true, default: false },
   },

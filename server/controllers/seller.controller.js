@@ -8,9 +8,19 @@ import mongoose from "mongoose";
 export const sellerLogin = async(req, res) => {
   try  {
     const { email, password } = req.body;
+    const sellerEmail = process.env.SELLER_EMAIL?.trim().toLowerCase();
+    const sellerPassword = process.env.SELLER_PASSWORD;
+    const loginEmail = email?.trim().toLowerCase();
+
+    if (!sellerEmail || !sellerPassword || !process.env.JWT_SECRET) {
+      return res
+        .status(500)
+        .json({ message: "Seller login is not configured", success: false });
+    }
+
     if (
-      email !== process.env.SELLER_EMAIL || 
-      password !== process.env.SELLER_PASSWORD
+      loginEmail !== sellerEmail ||
+      password !== sellerPassword
     ) {
       return res
         .status(401)
@@ -18,7 +28,7 @@ export const sellerLogin = async(req, res) => {
     }
 
     const token = jwt.sign(
-      { email, role: "seller" },
+      { email: sellerEmail, role: "seller" },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -30,7 +40,7 @@ export const sellerLogin = async(req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({ message: "Login successful", success: true });
+    res.status(200).json({ message: "Login successful", success: true, token });
   } catch (error) {
     console.error("Error in sellerLogin:", error);
     res.status(500).json({ message: "Internal server error" });

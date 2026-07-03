@@ -6,7 +6,8 @@ const router=express.Router();
 
 router.post("/login",sellerLogin);
 router.get("/is-auth",authSeller,isAuthSeller);
-router.get("/logout",authSeller,sellerLogout);
+router.post("/logout", sellerLogout);
+router.get("/logout", sellerLogout);
 router.get("/dashboard", authSeller, getDashboardData);
 
 export default router;

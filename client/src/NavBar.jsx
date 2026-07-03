@@ -15,6 +15,7 @@ const NavBar = () => {
   const {
     user,
     setUser,
+    setCartItems,
     navigate,
     setShowUserLogin,
     cartCount,
@@ -95,6 +96,7 @@ const NavBar = () => {
     localStorage.removeItem("userToken");
     localStorage.removeItem("token");
     setUser(null);
+    setCartItems({});
     setShowProfileMenu(false);
     setOpen(false);
     navigate("/");

@@ -36,26 +36,26 @@ const Dashboard = () => {
 
     return (
         <div className="p-4 md:p-8 space-y-8 bg-gray-50 min-h-screen">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-gray-800">Seller Dashboard</h1>
-                <div className="text-sm text-gray-500">Real-time Analytics</div>
+            <div className="flex justify-between items-center gap-2">
+                <h1 className="text-lg md:text-2xl font-bold text-gray-800">Seller Dashboard</h1>
+                <div className="text-xs md:text-sm text-gray-500 whitespace-nowrap">Real-time Analytics</div>
             </div>
 
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 {[
                     { label: "Total Sales", value: `₹${data.stats.totalSales.toLocaleString()}`, icon: "💰", color: "bg-green-100 text-green-600" },
                     { label: "Total Orders", value: data.stats.totalOrders, icon: "📦", color: "bg-blue-100 text-blue-600" },
                     { label: "Total Products", value: data.stats.totalProducts, icon: "🏷️", color: "bg-purple-100 text-purple-600" },
                     { label: "Low Stock", value: data.stats.lowStockCount, icon: "⚠️", color: "bg-red-100 text-red-600" }
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl ${stat.color}`}>
+                    <div key={i} className="bg-white p-3 md:p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2 md:gap-4">
+                        <div className={`w-8 h-8 md:w-12 md:h-12 rounded-full flex items-center justify-center text-lg md:text-2xl flex-shrink-0 ${stat.color}`}>
                             {stat.icon}
                         </div>
-                        <div>
-                            <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
-                            <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
+                        <div className="min-w-0">
+                            <p className="text-[10px] md:text-sm text-gray-500 font-medium truncate">{stat.label}</p>
+                            <p className="text-base md:text-2xl font-bold text-gray-800 truncate">{stat.value}</p>
                         </div>
                     </div>
                 ))}
