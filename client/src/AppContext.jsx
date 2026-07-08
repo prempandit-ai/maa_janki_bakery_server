@@ -12,8 +12,14 @@ axios.interceptors.request.use(
   (config) => {
     const userToken = localStorage.getItem("userToken") || localStorage.getItem("token");
     const sellerToken = localStorage.getItem("sellerToken");
+    const url = config.url || "";
+    const isSellerRequest =
+      url.startsWith("/api/seller") ||
+      url === "/api/order/seller" ||
+      url === "/api/order/status" ||
+      url === "/api/order/approval";
 
-    if (config.url && config.url.startsWith("/api/seller")) {
+    if (isSellerRequest) {
       if (sellerToken) {
         config.headers.token = sellerToken;
         config.headers.Authorization = `Bearer ${sellerToken}`;
@@ -47,6 +53,15 @@ const AppContextProvider = ({ children }) => {
   
   const backendUrl = axios.defaults.baseURL;
 
+  const clearUserSession = () => {
+    localStorage.removeItem("userToken");
+    localStorage.removeItem("token");
+    setUser(null);
+    setCartItems({});
+    hasHydratedUserCart.current = false;
+    lastSyncedCartRef.current = null;
+  };
+
   // Fetch seller status
   const fetchSeller = async () => {
     setIsSellerLoading(true);
@@ -71,17 +86,11 @@ const AppContextProvider = ({ children }) => {
         setUser(data.user);
         setCartItems(data.user.cartItems || {});
       } else {
-        localStorage.removeItem("userToken");
-        localStorage.removeItem("token");
-        setUser(null);
-        setCartItems({});
+        clearUserSession();
       }
     } catch (error) {
       if (error?.response?.status === 401) {
-        localStorage.removeItem("userToken");
-        localStorage.removeItem("token");
-        setUser(null);
-        setCartItems({});
+        clearUserSession();
         return;
       }
       toast.error(error.message);
@@ -177,10 +186,9 @@ const AppContextProvider = ({ children }) => {
           toast.error(data.message);
         }
       } catch (error) {
-        // On 401, silently skip — user may have just logged in and the
-        // cookie hasn't propagated yet, or the session genuinely expired.
-        // Do NOT clear user here to avoid a race condition after Google login.
         if (error?.response?.status === 401) {
+          clearUserSession();
+          toast.error("Please log in again to sync your cart");
           return;
         }
         toast.error(error.message);

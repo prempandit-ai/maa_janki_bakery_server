@@ -23,6 +23,7 @@ import AddProduct from "./seller/AddProduct";
 import EditProduct from "./seller/EditProduct";
 import ProductList from "./seller/ProductList";
 import Orders from "./seller/Orders";
+import Dashboard from "./seller/Dashboard";
 import BakeSmartDashboard from "./pages/BakeSmartDashboard";
 
 

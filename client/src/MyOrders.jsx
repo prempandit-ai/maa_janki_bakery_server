@@ -1,5 +1,4 @@
 import {useContext, useState, useEffect } from "react";
-import { dummyOrders } from "./assets/assets";
 import {AppContext} from "./AppContext";
 import toast from "react-hot-toast";
 import BackButton from "./components/BackButton";
@@ -7,14 +6,16 @@ import { getImageUrl } from "./utils/imageUrl";
 
 function MyOrders() {
   const [myOrders, setMyOrders] = useState([]);
-  const {axios,user, backendUrl}=useContext(AppContext);
+  const [isLoading, setIsLoading] = useState(false);
+  const {axios,user, isUserLoading, backendUrl}=useContext(AppContext);
 
   const fetchOrders = async() => {
+    setIsLoading(true);
     try{
           const {data}=await axios.get("/api/order/user");
       console.log("data",data);
        if(data.success){
-          setMyOrders(data.orders);   
+          setMyOrders(data.orders || []);
       }
    else{
            toast.error(data.message);
@@ -22,16 +23,21 @@ function MyOrders() {
     }
     } 
     catch(error){
-        toast.error(error.message);
-   }  
+        toast.error(error.response?.data?.message || error.message);
+        setMyOrders([]);
+   } finally {
+        setIsLoading(false);
+   }
   };
 
 
   useEffect(() => {
     if(user){
-    fetchOrders();
-  }
-  }, []);
+      fetchOrders();
+    } else if (!isUserLoading) {
+      setMyOrders([]);
+    }
+  }, [user, isUserLoading]);
 
   return (
     <div className="mt-2 pb-12 w-full max-w-4xl mx-auto">
@@ -39,6 +45,14 @@ function MyOrders() {
       <div className="mt-4">
         <p className="text-xl md:text-2xl font-semibold text-gray-800">My Orders</p>
       </div>
+
+      {isLoading && (
+        <p className="mt-6 text-sm text-gray-500">Loading orders...</p>
+      )}
+
+      {!isLoading && myOrders.length === 0 && (
+        <p className="mt-6 text-sm text-gray-500">No orders found.</p>
+      )}
 
       {myOrders.map((order, index) => (
         <div

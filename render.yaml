@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: maa-janki-bakery
+    runtime: node
+    startCommand: npm start
+    buildCommand: npm ci --no-audit --no-fund 2>&1
+    envVars:
+      - key: NODE_ENV
+        value: production

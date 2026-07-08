@@ -1,11 +1,11 @@
 import {useState,useEffect,useContext} from "react";
-import {dummyOrders,assets} from "../assets/assets";
 import {AppContext} from "../AppContext";
 import { getImageUrl } from "../utils/imageUrl";
 import toast from "react-hot-toast";
 
 const Orders = () => {
     const [orders, setOrders] = useState(null); // Initialize with null for loading check
+    const [pendingApproval, setPendingApproval] = useState(null);
     const { axios, backendUrl } = useContext(AppContext);
 
     const getCustomerName = (order) => {
@@ -39,7 +39,6 @@ const Orders = () => {
     const fetchOrders = async () => {
         try {
             const { data } = await axios.get("/api/order/seller", { withCredentials: true });
-            console.log("Orders API response:", data);
             if (data.success) {
                 setOrders(data.orders);
             } else {
@@ -56,14 +55,19 @@ const Orders = () => {
         try {
             const { data } = await axios.post("/api/order/status", { orderId, status }, { withCredentials: true });
             if (data.success) {
+                toast.success(data.message || "Order status updated");
                 await fetchOrders();
+            } else {
+                toast.error(data.message || "Unable to update status");
             }
         } catch (error) {
             console.error("Status update error:", error);
+            toast.error(error.response?.data?.message || error.message);
         }
     };
 
     const approvalHandler = async (orderId, decision) => {
+        setPendingApproval(`${orderId}:${decision}`);
         try {
             const { data } = await axios.post(
                 "/api/order/approval",
@@ -77,7 +81,10 @@ const Orders = () => {
                 toast.error(data.message || "Unable to update order");
             }
         } catch (error) {
+            console.error("Approval update error:", error);
             toast.error(error.response?.data?.message || error.message);
+        } finally {
+            setPendingApproval(null);
         }
     };
 
@@ -96,7 +103,9 @@ const Orders = () => {
                 <p>No orders found.</p>
             ) : (
                 orders?.map((order, index) => {
-                    console.log("Rendering order:", order);
+                    const acceptingOrder = pendingApproval === `${order._id}:accepted`;
+                    const rejectingOrder = pendingApproval === `${order._id}:rejected`;
+                    const approvalInProgress = acceptingOrder || rejectingOrder;
                     return (
                         <div key={index} className="flex flex-col md:grid md:grid-cols-[2fr_1fr_1fr_1fr] md:items-center gap-4 p-4 md:p-5 max-w-4xl rounded-lg border border-gray-200 text-gray-800 bg-white shadow-sm">
                             {/* Product Info */}
@@ -141,15 +150,17 @@ const Orders = () => {
                                     <div className="flex gap-2 mt-3">
                                         <button
                                             onClick={() => approvalHandler(order._id, "accepted")}
-                                            className="px-3 py-1.5 rounded-md bg-green-600 text-white font-semibold hover:bg-green-700 transition"
+                                            disabled={approvalInProgress}
+                                            className="px-3 py-1.5 rounded-md bg-green-600 text-white font-semibold hover:bg-green-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
-                                            Accept
+                                            {acceptingOrder ? "Accepting..." : "Accept"}
                                         </button>
                                         <button
                                             onClick={() => approvalHandler(order._id, "rejected")}
-                                            className="px-3 py-1.5 rounded-md bg-red-500 text-white font-semibold hover:bg-red-600 transition"
+                                            disabled={approvalInProgress}
+                                            className="px-3 py-1.5 rounded-md bg-red-500 text-white font-semibold hover:bg-red-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
-                                            Reject
+                                            {rejectingOrder ? "Rejecting..." : "Reject"}
                                         </button>
                                     </div>
                                 ) : order.status === "Order Rejected" ? (
